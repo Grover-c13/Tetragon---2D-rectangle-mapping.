@@ -3,7 +3,7 @@ Library for mananging data that consists of non-overlaping axis aligned rectangl
 
 Making this library as i need it for a 2d voxel game :)
 
-The main idea is to provide a set of operations as quickly as possible:
+The main idea is to provide a set of operations as quickly as possible while keeping rectangles described as a set of points:
 - Add rectangles (current peformance is O((logn)^2)) where n is the number of rectangles)
 - Merge rectangles O(1)
 - Remove a subrectangle from an existing rectangle O(1)
