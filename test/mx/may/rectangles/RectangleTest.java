@@ -203,6 +203,82 @@ public class RectangleTest
 		assertEquals(top.getIntersection(bottom), null);
 	}
 
+	@Test
+	void fullyInsideSingleQuadrant()
+	{
+		assertEquals(testRect1.fullyInsideSingleQuadrant(new Point(-1, -1)), true);
+		assertEquals(testRect1.fullyInsideSingleQuadrant(new Point(0, 0)), false);
+		assertEquals(testRect1.fullyInsideSingleQuadrant(new Point(5, 5)), false);
+	}
+
+
+	@Test
+	void removeOutsideQuadrant()
+	{
+		Rectangle expected = new Rectangle(new Point(5, 5), testRect1.topRightCorner);
+		Rectangle actual =  testRect1.removeOutsideQuadrant(new Point(5, 5), Rectangle.Direction.TOP_RIGHT);
+		assertEquals(expected, actual);
+
+		expected = new Rectangle(new Point(0, 5), new Point(5, 10));
+		actual = testRect1.removeOutsideQuadrant(new Point(5, 5), Rectangle.Direction.TOP_LEFT);
+		assertEquals(expected, actual);
+
+		expected = new Rectangle(new Point(0, 0), new Point(5, 5));
+		actual = testRect1.removeOutsideQuadrant(new Point(5, 5), Rectangle.Direction.BOTTOM_LEFT);
+		assertEquals(expected, actual);
+
+		expected = new Rectangle(new Point(5, 0), new Point(10, 5));
+		actual = testRect1.removeOutsideQuadrant(new Point(5, 5), Rectangle.Direction.BOTTOM_RIGHT);
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	void getDirection()
+	{
+		Rectangle.Direction expected, actual;
+		Rectangle checking;
+
+		checking = new Rectangle(20, 20, 30, 30);
+		expected = Rectangle.Direction.TOP_RIGHT;
+		actual = testRect1.getDirection(checking);
+		assertEquals(expected, actual);
+
+
+		checking = new Rectangle(-10, 20, 0, 30);
+		expected = Rectangle.Direction.TOP_LEFT;
+		actual = testRect1.getDirection(checking);
+		assertEquals(expected, actual);
+
+		checking = new Rectangle(0, 10, 10, 20);
+		expected = Rectangle.Direction.TOP;
+		actual = testRect1.getDirection(checking);
+		assertEquals(expected, actual);
+
+		checking = new Rectangle(20, -20, 30, 30);
+		expected = Rectangle.Direction.RIGHT;
+		actual = testRect1.getDirection(checking);
+		assertEquals(expected, actual);
+
+		checking = new Rectangle(-10, 0, 0, 10);
+		expected = Rectangle.Direction.LEFT;
+		actual = testRect1.getDirection(checking);
+		assertEquals(expected, actual);
+
+		checking = new Rectangle(-10, -10, 0, 0);
+		expected = Rectangle.Direction.BOTTOM_LEFT;
+		actual = testRect1.getDirection(checking);
+		assertEquals(expected, actual);
+
+		checking = new Rectangle(10, -10, 20, 0);
+		expected = Rectangle.Direction.BOTTOM_RIGHT;
+		actual = testRect1.getDirection(checking);
+		assertEquals(expected, actual);
+
+		checking = new Rectangle(-10, -10, 10, 0);
+		expected = Rectangle.Direction.BOTTOM;
+		actual = testRect1.getDirection(checking);
+		assertEquals(expected, actual);
+	}
 
 	@Test
 	void doesXOverlap()
