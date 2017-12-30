@@ -12,6 +12,7 @@ public class Rectangle
 	public final Point topLeftCorner;
 	public final Point topRightCorner;
 	public final Point btmRightCorner;
+	public final Point center;
 	public final int width;
 	public final int height;
 	public final LineSegment bottom;
@@ -35,11 +36,21 @@ public class Rectangle
 		top = new LineSegment(maxy, minx, maxx);
 		right = new LineSegment(maxx, miny, maxy);
 		left = new LineSegment(minx, miny, maxy);
+		center = new Point(maxx/2, maxy/2);
 	}
 
 	public Rectangle(int width, int height, Point centre)
 	{
 		this(centre.x - width / 2, centre.y - height / 2, centre.x + width / 2, centre.y + height / 2);
+	}
+
+	public Rectangle(Point corner1, Point corner2)
+	{
+		this(	Math.min(corner1.x, corner2.x),
+				Math.min(corner1.y, corner2.y),
+				Math.max(corner1.x, corner2.x),
+				Math.max(corner1.y, corner2.y)
+			);
 	}
 
 
@@ -227,12 +238,12 @@ public class Rectangle
 	{
 		if (!this.insideRectangle(sub))
 		{
-			throw new IllegalArgumentException("Tried to decompose a rectangle witch is not a subrectangle of this one.");
+			throw new IllegalArgumentException("Tried to decompose a rectangle which is not a subrectangle of this one.");
 		}
 
 		// 1, 2, 3, 4 corners of the rectangle from btmLeft to btm right clockwise (so btmLeft = 1, topLeft = 2,
 		// topright = 3, btmright = 4), likewise 5-8 for the subrectangle in the same order, the subrectangles from
-		// decompoising horizontally:
+		// decomposing horizontally:
 		// A = (1x, 6y), 3
 		// B = (1x, 5y), 6
 		// C = 8, (4x, 7y)
@@ -249,13 +260,13 @@ public class Rectangle
 	{
 		if (!this.insideRectangle(sub))
 		{
-			throw new IllegalArgumentException("Tried to decompose a rectangle witch is not a subrectangle of this one.");
+			throw new IllegalArgumentException("Tried to decompose a rectangle which is not a subrectangle of this one.");
 		}
 
 
 		// 1, 2, 3, 4 corners of the rectangle from btmLeft to btm right clockwise (so btmLeft = 1, topLeft = 2,
 		// topright = 3, btmright = 4), likewise 5-8 for the subrectangle in the same order, the subrectangles from
-		// decompoising horizontally:
+		// decomposing horizontally:
 		// A = 1, (6x, 2y)
 		// B = 6, (7x, 2y)
 		// C = (5x, 1y), 8
@@ -294,6 +305,87 @@ public class Rectangle
 		return doesIntervalOverlap(this.btmLeftCorner.y, this.topRightCorner.y, other.btmLeftCorner.y, other.topRightCorner.y);
 	}
 
+	public Direction getDirection(Point point)
+	{
+		Direction out = null;
+		if (point.x >= center.x && point.y >= center.y) out = Direction.TOP_RIGHT;
+		if (point.x >= center.x && point.y < center.y) out = Direction.BOTTOM_RIGHT;
+		if (point.x < center.x && point.y < center.y) out = Direction.BOTTOM_LEFT;
+		if (point.x < center.x && point.y >= center.y) out = Direction.TOP_LEFT;
+
+		return out;
+	}
+
+	public Direction getDirection(Rectangle rectangle)
+	{
+		Direction btmLeftCornerDir = this.getDirection(rectangle.btmLeftCorner);
+		Direction btmRightCornerDir = this.getDirection(rectangle.btmRightCorner);
+		Direction topLeftCornerDir = this.getDirection(rectangle.topLeftCorner);
+		Direction topRightCornerDir = this.getDirection(rectangle.topRightCorner);
+		Direction out = Direction.valueOf(
+							btmLeftCornerDir.direction &
+							btmRightCornerDir.direction &
+							topLeftCornerDir.direction &
+							topRightCornerDir.direction
+						);
+		return out;
+
+	}
+
+
+	public Rectangle removeOutsideQuadrant(Point center, Direction direction)
+	{
+		Rectangle split = null;
+		if (!fullyInsideSingleQuadrant(center))
+		{
+			Point other = null;
+			switch (direction)
+			{
+				case BOTTOM_LEFT:
+					other = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
+					break;
+				case BOTTOM_RIGHT:
+					other = new Point(Integer.MAX_VALUE, Integer.MIN_VALUE);
+					break;
+				case TOP_LEFT:
+					other = new Point(Integer.MIN_VALUE, Integer.MAX_VALUE);
+					break;
+				case TOP_RIGHT:
+					other = new Point(Integer.MAX_VALUE, Integer.MAX_VALUE);
+					break;
+				case LEFT:
+					throw new IllegalArgumentException("Direction cannot be TOP, RIGHT, LEFT or BOTTOM");
+				case RIGHT:
+					throw new IllegalArgumentException("Direction cannot be TOP, RIGHT, LEFT or BOTTOM");
+				case TOP:
+					throw new IllegalArgumentException("Direction cannot be TOP, RIGHT, LEFT or BOTTOM");
+				case BOTTOM:
+					throw new IllegalArgumentException("Direction cannot be TOP, RIGHT, LEFT or BOTTOM");
+			}
+
+			split = this.getIntersection(new Rectangle(center, other));
+		}
+		else
+		{
+			split = this;
+		}
+
+		return split;
+	}
+
+	public boolean fullyInsideSingleQuadrant(Point center)
+	{
+		// create 2 lines
+		LineSegment horizontal = new LineSegment(center.y, Integer.MIN_VALUE, Integer.MAX_VALUE);
+		LineSegment vertical = new LineSegment(center.x, Integer.MIN_VALUE, Integer.MAX_VALUE);
+
+		return 	(horizontal.intersectsWithVertical(left) == null) &&
+				(horizontal.intersectsWithVertical(right) == null) &&
+				(vertical.intersectsWithHorizontal(top) == null) &&
+				(vertical.intersectsWithHorizontal(bottom) == null);
+	}
+
+
 	@Override
 	public boolean equals(Object obj)
 	{
@@ -313,6 +405,7 @@ public class Rectangle
 		return false;
 	}
 
+
 	@Override
 	public String toString()
 	{
@@ -326,4 +419,55 @@ public class Rectangle
 		INSIDE,
 		NONE
 	}
+
+	public enum Direction
+	{
+		// Binary pattern: first = right, second = left, third = top, forth = bottom
+		// so if you binary and two diagonal directions you will get the full horizontal/vertical direction
+		// ie. BTM_LEFT & BTM_RIGHT = BTM
+		BOTTOM_RIGHT (0x1001),
+		BOTTOM_LEFT (0x0101),
+		TOP_LEFT (0x0110),
+		TOP_RIGHT (0x1010),
+		TOP (0x0010),
+		BOTTOM (0x0001),
+		LEFT (0x0100),
+		RIGHT (0x1000),
+		NONE (0x0000);
+
+		private int direction;
+		Direction(int direction) {
+			this.direction = direction;
+		}
+
+		public static Direction valueOf(int value)
+		{
+			switch (value)
+			{
+				case (0x1001):
+					return BOTTOM_RIGHT;
+				case (0x0101):
+					return BOTTOM_LEFT;
+				case (0x0110):
+					return TOP_LEFT;
+				case (0x1010):
+					return TOP_RIGHT;
+				case (0x0010):
+					return TOP;
+				case (0x0001):
+					return BOTTOM;
+				case (0x0100):
+					return LEFT;
+				case (0x1000):
+					return RIGHT;
+				case (0x0000):
+					return NONE;
+				default:
+					throw new IllegalArgumentException("Trying to get a direction with invalid value");
+			}
+		}
+
+	}
+
+
 }
